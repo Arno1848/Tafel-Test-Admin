@@ -1,4 +1,4 @@
-<!--"section-export.html" 09.09.2025 -->
+<!--"section-export.html" 16.09.2025 -->
 
     <section id="export-bereich" class="module" data-original-index="3">
       <div class="module-header"> 
@@ -9,34 +9,7 @@
 
 <!------PDF - Tagesrapport -->
         <div class="button-container">
-          <button class="tagesrapport-button" onclick="toggleTagesrapport(this)">PDF - Tagesrapport</button>
-        </div>
-
-        <div class="button-container">
-            <div id="tagesrapportAuswahlBereich" class="tagesrapport-area" style="display: none; font-size: 0.9em;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">  <div style="display: flex; align-items: center; gap: 20px;">      <select id="tagesrapportTerminAuswahl" style="flex: 1;">
-                            <option value="">-- Bitte wählen --</option>
-                </select        >
-                        <p id="TagesrapportInfo" style="margin: 0;">anwesend: 10 Helfer</p>  </div>
-                </div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div id="tagesrapport-navigation" style="display: flex; align-items: center; gap: 5px;">    <button onclick="zeigeVorherigenTagesrapportTermin()">&#9668;</button>
-                        <span>Termin</span>
-                        <button onclick="zeigeNaechstenTagesrapportTermin()">&#9658;</button>
-                    </div>
-                    <button id="tagesrapportPdfExportButton" onclick="exportTagesrapport2Pdf(this)" style="white-space: nowrap;">PDF Export ►</button>
-                    <div class="loader" style="display: none;"></div>
-                </div>
-        <div class="button-container">
-          <div id="pdfExportInfo_Tagesrapport" class="export-info-area" style="display: none; margin-top: 0px; margin-bottom: 0px; font-size: 0.9em;">
-            <p id="infoStatus_Tagesrapport"></p>
-            <p id="emailStatus_Tagesrapport"></p>
-            <p id="downloadLink_Tagesrapport"></p>
-          </div>
-        </div>
-
-
-            </div>
+          <button class="tagesrapport-button" onclick="openTagesrapportOverlay()">Tagesrapport</button>
         </div>
 
 <!------PDF - Tabelle Anmeldung -->
@@ -70,3 +43,37 @@
         </div>
       </div>
     </section>
+
+ 
+<!------Overlay Rapport -->
+<div id="overlayRapport">
+  <div id="overlayRapport-content">
+    <h2 id="overlayRapport-title">Export/Tagesrapport</h2>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em;">
+      <div style="display: flex; align-items: center; gap: 5px">
+        <button onclick="zeigeVorherigenTagesrapportTermin()">&#9668;</button>
+        <select id="tagesrapportTerminAuswahl" style="flex: 1"></select>
+        <button onclick="zeigeNaechstenTagesrapportTermin()">&#9658;</button>
+      </div>
+    </div>
+    
+    <p id="TagesrapportInfo" style="margin-bottom: 10px; font-size: 0.9em;"></p>
+
+    <div class="scrollbox scrollbox-anmeldungen">
+      <table id="scrollboxAnmeldungen-table"></table>
+    </div>
+
+    <div class="overlayRapport-buttons">
+      <button onclick="closeOverlayRapport()">Schließen</button>
+      <button onclick="createRapportAndExport('pdf')">PDF-Datei</button>
+      <button onclick="createRapportAndExport('xlsx')">XLSX-Datei</button> 
+    </div>
+
+    <div id="rapportStatusContainer" class="export-status-container">
+      <p id="rapportStatusText"></p>
+      <div id="rapportSpinner" class="spinner small hidden"></div>
+    </div>
+
+  </div>
+</div>

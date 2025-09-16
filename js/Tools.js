@@ -1,4 +1,4 @@
-// "Tools.js" ----- 09.09.2025 ----------
+// "Tools.js" ----- 14.09.2025 ----------
 
 //---------------------------------------------------------------------------------------------
 function setSpinnerState(id, loading) {
@@ -29,6 +29,11 @@ function closePopup() {
 // ----------------------------------
   document.getElementById("popup").style.display = "none";
 }
+
+
+
+
+
 
 let isPdfExporting = false;
 // ----------------------------------

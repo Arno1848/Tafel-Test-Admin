@@ -1,136 +1,265 @@
-// "Rapport.js" ----- 09.09.2025 ----------
+// Rapport.js - 16.09.2025 (Überarbeitet)
 
-// ----------------------------------
-function toggleTagesrapport(button) {
-// ----------------------------------
-  const tagesrapportAuswahlBereich = document.getElementById("tagesrapportAuswahlBereich");
+//----------------------------------
+function openTagesrapportOverlay() {
+//----------------------------------
+    const overlay = document.getElementById("overlayRapport");
+    overlay.style.display = "flex";
 
-  let originalText = button.textContent;
-  if (originalText.endsWith(hideText)) {
-    originalText = originalText.slice(0, -hideText.length);
-  }
+    updateExportStatus('rapportStatusContainer', "", false); 
 
-  if (tagesrapportAuswahlBereich.style.display === "none") {
-    tagesrapportAuswahlBereich.style.display = "block";
-    button.textContent = originalText + hideText;
     ladeTagesrapportTermine();
-  } else {
-    tagesrapportAuswahlBereich.style.display = "none";
-    button.textContent = originalText;
-  }
 }
 
 //----------------------------------
 function ladeTagesrapportTermine() {
 //----------------------------------
-  const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
-  const tagesrapportInfo = document.getElementById("TagesrapportInfo");
-  terminAuswahl.innerHTML = "<option value=''>-- Bitte wählen --</option>";
+    const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
+    terminAuswahl.innerHTML = "<option value=''>-- Bitte wählen --</option>";
 
-  verfuegbareTermine.forEach((termin, index) => {
-    const option = document.createElement("option");
-    option.value = termin;
-    option.textContent = termin;
-    if (index === 0 && termin !== '') {
-      option.selected = true;
-      if (alleAnmeldeInfosCache[termin] && alleAnmeldeInfosCache[termin].helferAnzahl !== undefined) {
-        tagesrapportInfo.textContent = `anwesend: ${alleAnmeldeInfosCache[termin].helferAnzahl} Helfer`;
-      } else {
-        tagesrapportInfo.textContent = `anwesend: - Helfer`;
-      }
+    if (!verfuegbareTermine || verfuegbareTermine.length === 0) {
+        document.getElementById("TagesrapportInfo").textContent = "Keine Termine verfügbar.";
+        return;
     }
-    terminAuswahl.appendChild(option);
-  });
+
+    verfuegbareTermine.forEach((termin, index) => {
+        const option = document.createElement("option");
+        option.value = termin;
+        option.textContent = termin;
+        terminAuswahl.appendChild(option);
+    });
+
+    if (verfuegbareTermine.length > 0) {
+        terminAuswahl.value = verfuegbareTermine[0];
+        const ausgewaehlterTermin = verfuegbareTermine[0];
+        updateTagesrapportInfo();
+        fuelleAnmeldungsTabelleImOverlay(ausgewaehlterTermin);
+    }
+
+    terminAuswahl.removeEventListener("change", handleTerminAuswahlChange);
+    terminAuswahl.addEventListener("change", handleTerminAuswahlChange);
 }
+
+//----------------------------------
+function handleTerminAuswahlChange() {
+//----------------------------------
+    const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
+    const ausgewaehlterTermin = terminAuswahl.value;
+
+    updateTagesrapportInfo();
+    fuelleAnmeldungsTabelleImOverlay(ausgewaehlterTermin);
+}
+
+//----------------------------------
+function updateTagesrapportInfo() {
+//----------------------------------
+    const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
+    const tagesrapportInfo = document.getElementById("TagesrapportInfo");
+    const ausgewaehlterTermin = terminAuswahl.value;
+
+    if (alleAnmeldeInfosCache[ausgewaehlterTermin] && alleAnmeldeInfosCache[ausgewaehlterTermin].helferAnzahl !== undefined) {
+        tagesrapportInfo.textContent = `Anmeldungen am ${ausgewaehlterTermin}: ${alleAnmeldeInfosCache[ausgewaehlterTermin].helferAnzahl} Helfer`;
+    } else {
+        tagesrapportInfo.textContent = `Anmeldungen am ${ausgewaehlterTermin}: 0 Helfer`;
+    }
+
+    updateExportStatus ('rapportStatusContainer', "", false); 
+
+  }
 
 //----------------------------------
 function zeigeVorherigenTagesrapportTermin() {
 //----------------------------------
-  const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
-  const tagesrapportInfo = document.getElementById("TagesrapportInfo");
-  let currentIndex = verfuegbareTermine.indexOf(terminAuswahl.value);
+    const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
+    let currentIndex = verfuegbareTermine.indexOf(terminAuswahl.value);
 
-  if (currentIndex > 0) {
-    currentIndex--;
-    terminAuswahl.value = verfuegbareTermine[currentIndex];
-    const ausgewaehlterTermin = terminAuswahl.value;
-    if (alleAnmeldeInfosCache[ausgewaehlterTermin] && alleAnmeldeInfosCache[ausgewaehlterTermin].helferAnzahl !== undefined) {
-      tagesrapportInfo.textContent = `anwesend: ${alleAnmeldeInfosCache[ausgewaehlterTermin].helferAnzahl} Helfer`;
-    } else {
-      tagesrapportInfo.textContent = `anwesend: - Helfer`;
+    if (currentIndex > 0) {
+        currentIndex--;
+        terminAuswahl.value = verfuegbareTermine[currentIndex];
+        updateTagesrapportInfo();
+        fuelleAnmeldungsTabelleImOverlay(verfuegbareTermine[currentIndex]);
     }
-  }
 }
 
 //----------------------------------
 function zeigeNaechstenTagesrapportTermin() {
 //----------------------------------
-  const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
-  const tagesrapportInfo = document.getElementById("TagesrapportInfo");
-  let currentIndex = verfuegbareTermine.indexOf(terminAuswahl.value);
+    const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
+    let currentIndex = verfuegbareTermine.indexOf(terminAuswahl.value);
 
-  if (currentIndex < verfuegbareTermine.length - 1) {
-    currentIndex++;
-    terminAuswahl.value = verfuegbareTermine[currentIndex];
-    const ausgewaehlterTermin = terminAuswahl.value;
-    if (alleAnmeldeInfosCache[ausgewaehlterTermin] && alleAnmeldeInfosCache[ausgewaehlterTermin].helferAnzahl !== undefined) {
-      tagesrapportInfo.textContent = `anwesend: ${alleAnmeldeInfosCache[ausgewaehlterTermin].helferAnzahl} Helfer`;
-    } else {
-      tagesrapportInfo.textContent = `anwesend: - Helfer`;
+    if (currentIndex < verfuegbareTermine.length - 1) {
+        currentIndex++;
+        terminAuswahl.value = verfuegbareTermine[currentIndex];
+        updateTagesrapportInfo();
+        fuelleAnmeldungsTabelleImOverlay(verfuegbareTermine[currentIndex]);
     }
-  }
 }
 
-// ----------------------------------
-function exportTagesrapport2Pdf(button) {
-// ----------------------------------
-  const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
-  const ausgewaehlterTermin = terminAuswahl.value;
-  const loader = button.nextElementSibling;
+//----------------------------------
+function fuelleAnmeldungsTabelleImOverlay(termin) {
+//----------------------------------
+    const anmeldungenTable = document.getElementById("scrollboxAnmeldungen-table");
+    anmeldungenTable.innerHTML = "";
 
-  if (!ausgewaehlterTermin) {
-    showPopup("Bitte wählen Sie einen Termin für den Tagesrapport aus.");
-    return;
-  }
-
-  const originalText = button.textContent;
-  button.textContent = "Rapport wird erstellt...";
-  button.disabled = true;
-  if (loader) {
-    loader.style.display = "inline-block";
-  }
-
-  const infoContainerId = `pdfExportInfo_Tagesrapport`;
-  const infoContainer = document.getElementById(infoContainerId);
-  if (infoContainer.style.display === 'block') {
-    infoContainer.style.display = 'none';
-    button.textContent = "PDF Export ►";
-    button.disabled = false;
-    isPdfExporting = false;
-    if (loader) {
-      loader.style.display = 'none';
+    if (!termin || !alleAnmeldeDaten || alleAnmeldeDaten.length === 0) {
+        anmeldungenTable.innerHTML = "<tr><td colspan='2'>Keine Daten verfügbar.</td></tr>";
+        return;
     }
-    return;
-  }
 
-  apiCall('createTagesrapport', { termin: ausgewaehlterTermin })
-    .then(result => {
-      button.textContent = originalText;
-      button.disabled = false;
-      if (loader) {
-        loader.style.display = "none";
+    const terminIndexImArray = verfuegbareTermine.indexOf(termin);
+    if (terminIndexImArray === -1) {
+        anmeldungenTable.innerHTML = "<tr><td colspan='2'>Termin nicht gefunden.</td></tr>";
+        return;
+    }
+    const funktionsSchluessel = `funktion${terminIndexImArray + 1}`;
+    
+    const gefilterteDaten = alleAnmeldeDaten.filter(person => {
+        const funktion = person[funktionsSchluessel] ? person[funktionsSchluessel].trim() : '';
+        return funktion !== '';
+    });
+
+    const tbody = document.createElement('tbody');
+
+    gefilterteDaten.forEach(person => {
+        const funktion = person[funktionsSchluessel] || "";
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${person.name}</td><td>${funktion}</td>`;
+        tbody.appendChild(row);
+    });
+
+    anmeldungenTable.appendChild(tbody);
+}
+
+//----------------------------------
+function closeOverlayRapport() {
+//----------------------------------
+    document.getElementById("overlayRapport").style.display = "none";
+}
+
+
+
+//-----------------------------------------------
+function createRapportAndExport(exportType) {
+//-----------------------------------------------
+    const terminAuswahl = document.getElementById("tagesrapportTerminAuswahl");
+    const ausgewaehlterTermin = terminAuswahl.value;
+
+    if (!ausgewaehlterTermin) {
+        showPopup("Bitte wählen Sie einen Termin für den Tagesrapport aus.");
+        return;
+    }
+
+    updateExportStatus ('rapportStatusContainer', "Tagesrapport wird erstellt...", true); 
+
+//    const statusContainer = document.getElementById("rapportStatusContainer");
+//    statusContainer.querySelector('p').textContent = "Tagesrapport wird erstellt...";
+//    statusContainer.querySelector('.spinner').classList.remove("hidden");
+
+    apiCall('createTagesrapport', { termin: ausgewaehlterTermin })
+        .then(result => {
+            updateExportStatus ('rapportStatusContainer', "Tagesrapport erstellt...", false); 
+//            statusContainer.querySelector('p').textContent = "Tagesrapport erfolgreich erstellt.";
+//            statusContainer.querySelector('.spinner').classList.add("hidden");
+
+            const rapportname = "Rapport " + ausgewaehlterTermin;
+
+            // Je nach exportType die entsprechende Funktion aufrufen
+            if (exportType === 'pdf') {
+                exportRapport2PdfAndDownload(rapportname);
+            } else if (exportType === 'xlsx') {
+                exportRapport2XlsxAndSendMail(rapportname);
+            }
+        })
+        .catch(error => {
+            updateExportStatus ('rapportStatusContainer', "Fehler beim Erstellen des Tagesrapports.", false); 
+//            statusContainer.querySelector('p').textContent = "Fehler beim Erstellen des Tagesrapports.";
+//            statusContainer.querySelector('.spinner').classList.add("hidden");
+//            console.error("Fehler beim Exportieren des Tagesrapports:", error);
+//            showPopup("Fehler beim Erstellen des Tagesrapports.");
+        });
+}
+
+//-----------------------------------------------
+function updateExportStatus(containerId, message, showSpinner) {
+//-----------------------------------------------
+/**
+ * Zeigt einen Status-Spinner und eine Meldung an.
+ * @param {string} containerId - ID des Containers für die Statusmeldung.
+ * @param {string} message - Die anzuzeigende Nachricht.
+ * @param {boolean} showSpinner - Ob der Spinner angezeigt werden soll.
+ */
+    const container = document.getElementById(containerId);
+    const textElement = container.querySelector('p');
+    const spinnerElement = container.querySelector('.spinner');
+
+    if (!container || !textElement || !spinnerElement) {
+        console.error("Export-Status-Container-Elemente nicht gefunden:", containerId);
+        return;
+    }
+
+    textElement.textContent = message;
+    if (showSpinner) {
+        spinnerElement.classList.remove('hidden');
+    } else {
+        spinnerElement.classList.add('hidden');
+    }
+}
+
+//-----------------------------------------------
+function exportRapport2PdfAndDownload(rapportname) {
+//-----------------------------------------------
+//    const statusContainerId = 'rapportStatusContainer'; // Oder eine andere ID für den Haupt-Export-Bereich
+
+    const sheetRapport = "Tagesrapport";
+    const pdfname = rapportname + ".pdf";
+    const rapportoptions = { hideGridlines: true };
+
+    updateExportStatus('rapportStatusContainer', `"${pdfname}" wird erstellt...`, true);
+
+    apiCall('exportSheetToPdfAndGetLink', {
+      sheetName: sheetRapport,
+      file: pdfname,
+      options: rapportoptions
+    })
+    .then(function(downloadUrl) {
+      updateExportStatus('rapportStatusContainer', "", false); // Spinner ausblenden
+
+      if (downloadUrl.startsWith("http")) {
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.textContent = `Klicken zum Herunterladen: "` + pdfname + `"`;
+        link.target = '_blank';
+        link.download = `pdfname`;
+        document.getElementById('rapportStatusContainer').querySelector('p').appendChild(link);
+      } else {
+        document.getElementById('rapportStatusContainer').querySelector('p').textContent = downloadUrl;
       }
-      infoStatus_Tagesrapport.textContent = "Rapport wurde erstellt für " + ausgewaehlterTermin;
-      button.textContent = " ";
-      togglePdfExport("Tagesrapport", button);
     })
     .catch(error => {
-      button.textContent = originalText;
-      button.disabled = false;
-      if (loader) {
-        loader.style.display = "none";
-      }
-      console.error("Fehler beim Exportieren des Tagesrapports:", error);
-      showPopup("Fehler: " + error.message);
+        console.error(`Fehler beim Erstellen der PDF-Datei für ${pdfname}:`, error);
+        updateExportStatus('rapportStatusContainer', `Fehler beim Erstellen der PDF-Datei für ${pdfname}.`, false);
     });
 }
+
+//-----------------------------------------------
+function exportRapport2XlsxAndSendMail(rapportname) {
+//-----------------------------------------------
+//    const statusContainerId = 'rapportStatusContainer'; // Oder eine andere ID
+
+    const usermail = adminmail
+    const sheetName = "Tagesrapport";
+    const filename = rapportname + ".xlsx";
+
+    updateExportStatus('rapportStatusContainer', `"${filename}" wird per E-Mail versandt...`, true);
+      console.log("sendmailXLSRapport:", sheetName, filename, usermail);
+
+      apiCall('exportSheetToXlsxAndSendMail', { sheetName, filename, usermail })
+    .then(function(mailsuccess) {
+        updateExportStatus('rapportStatusContainer', mailsuccess.message, false);
+    })
+    .catch(function(error) {
+        updateExportStatus('rapportStatusContainer', `Fehler beim E-Mail-Versand der XLSX-Datei `, false);
+    });
+
+}
+

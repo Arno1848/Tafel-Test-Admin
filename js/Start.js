@@ -13,7 +13,7 @@
   let verfuegbareTermineGeladen = false;
   let alleFunktionenGeladen = false;
   let alleMitarbeiterDatenGeladen = false;
-
+  let adminmail = "arno.bowi@web.de";
 
   const hideText = " (Klicken zum Ausblenden)";
   const keineAngabeText = "(keine Angabe)";
@@ -194,19 +194,10 @@ function speichereAlleAnmeldeInfosUndInitialisiere(anmeldeInfos) {
 // ----------------------------------
 function versucheInitialisiereAnzeige() {
 // ----------------------------------
-  const wartungsModusCheckbox = document.getElementById("wartungsModusCheckbox");
-  const statusAnzeige = document.getElementById("wartungs-status-anzeige");
-
   if (alleAnmeldeDatenGeladen && alleMitarbeiterDatenGeladen && alleAnmeldeInfosGeladen && verfuegbareTermineGeladen && alleFunktionenGeladen && AktualisierungsStatusGeladen) {
 
     initialisiereAnzeige(alleAnmeldeInfosCache);
     zeigeMitarbeiterTabelle(alleMitarbeiterDaten); 
-
-    if (wartungsModusCheckbox.checked) {
-      statusAnzeige.textContent = "an  - Tabelle gesperrt";
-    } else {
-      statusAnzeige.textContent = "aus - Tabelle offen";
-    }
 
     document.getElementById("loading-overlay").classList.add("hidden");
   }
@@ -282,3 +273,23 @@ function updateWartungsStatus(status) {
 
 }
 
+// ----------------------------------
+function xxxversucheInitialisiereAnzeige() {
+// ----------------------------------
+  const wartungsModusCheckbox = document.getElementById("wartungsModusCheckbox");
+  const statusAnzeige = document.getElementById("wartungs-status-anzeige");
+
+  if (alleAnmeldeDatenGeladen && alleMitarbeiterDatenGeladen && alleAnmeldeInfosGeladen && verfuegbareTermineGeladen && alleFunktionenGeladen && AktualisierungsStatusGeladen) {
+
+    initialisiereAnzeige(alleAnmeldeInfosCache);
+    zeigeMitarbeiterTabelle(alleMitarbeiterDaten); 
+
+    if (wartungsModusCheckbox.checked) {
+      statusAnzeige.textContent = "an  - Tabelle gesperrt";
+    } else {
+      statusAnzeige.textContent = "aus - Tabelle offen";
+    }
+
+    document.getElementById("loading-overlay").classList.add("hidden");
+  }
+}

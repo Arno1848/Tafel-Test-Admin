@@ -1,4 +1,4 @@
-// ExportMitarbeiter.js - 17.09.2025 (Überarbeitet)
+// ExportMitarbeiter.js - 23.09.2025 (Überarbeitet)
 const defaultSelectedColumns = ['Status', 'Name', 'Vorname', 'Mobil', 'Telefon', 'Emailadresse', 'Anmeldename', 'Geburtstag', 'Adresse' ];
 
 //----------------------------------
@@ -201,4 +201,5 @@ function buildRange(selectedColumns) {
     }
 
     return ranges;
+
 }

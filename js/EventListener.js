@@ -1,5 +1,5 @@
 // ===========================
-// EventListener.js (fix 2025-09-11)
+// EventListener.js 23.09.2025
 // ===========================
 
 // Globale Variablen
@@ -58,65 +58,10 @@ function toggleAccordionModule(clickedModule) {
     resetAccordionModulePosition(clickedModule);
   }
 }
-// ----------------------------------
-function xxxtoggleAccordionModule(clickedModule) {
-// ----------------------------------
-  if (!clickedModule) return;
-  const mainAccordionContainer = document.getElementById("main-accordion");
-  if (!mainAccordionContainer) {
-    console.error("main-accordion nicht gefunden");
-    return;
-  }
 
-  const content = clickedModule.querySelector('.module-content');
-  const header = clickedModule.querySelector('.module-header');
-  if (!content || !header) {
-    console.error("module-content oder module-header fehlt für Modul:", clickedModule);
-    return;
-  }
-
-  const wasOpen = clickedModule.classList.contains('open');
-
-  // Alle anderen offenen Module schließen
-  mainAccordionContainer.querySelectorAll('.module.open').forEach(moduleItem => {
-    if (moduleItem !== clickedModule) {
-      moduleItem.classList.remove('open');
-      const itemContent = moduleItem.querySelector('.module-content');
-      if (itemContent) itemContent.style.display = 'none';
-
-      // Optional: handle close for mitarbeiter modul (falls Funktion existiert)
-      if (moduleItem.id === 'mitarbeiter-anzeige-bereich' && typeof handleMitarbeiterAccordionClose === 'function') {
-        try { handleMitarbeiterAccordionClose(); } catch (e) { console.warn(e); }
-      }
-
-      resetAccordionModulePosition(moduleItem);
-    }
-  });
-
-  // Toggle für das geklickte Modul
-  if (wasOpen) {
-    clickedModule.classList.remove('open');
-    content.style.display = 'none';
-    if (clickedModule.id === 'mitarbeiter-anzeige-bereich' && typeof handleMitarbeiterAccordionClose === 'function') {
-      try { handleMitarbeiterAccordionClose(); } catch (e) { console.warn(e); }
-    }
-    resetAccordionModulePosition(clickedModule);
-  } else {
-    clickedModule.classList.add('open');
-    content.style.display = 'block';
-    if (clickedModule.id === 'mitarbeiter-anzeige-bereich' && typeof handleMitarbeiterAccordionOpen === 'function') {
-      try { handleMitarbeiterAccordionOpen(); } catch (e) { console.warn(e); }
-    }
-    // nach oben verschieben
-    try { mainAccordionContainer.prepend(clickedModule); } catch (e) { console.warn(e); }
-  }
-}
-
-// ----------------------------------
-// resetAccordionModulePosition
-// versucht ein Modul an seine ursprüngliche Position zurückzusetzen
 // ----------------------------------
 function resetAccordionModulePosition(moduleToReset) {
+// ----------------------------------
   if (!moduleToReset) return;
   const mainAccordionContainer = document.getElementById("main-accordion");
   if (!mainAccordionContainer) return;
@@ -165,9 +110,8 @@ function resetAccordionModulePosition(moduleToReset) {
 }
 
 // ----------------------------------
-// initEventListeners (wird explizit von Script.js aufgerufen)
-// ----------------------------------
 function initEventListeners() {
+// ----------------------------------
   console.log("🎛 initEventListeners()");
 
   // --- Accordion: Header-Klicks binden ---

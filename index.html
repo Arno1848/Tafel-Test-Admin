@@ -1,146 +1,1016 @@
-<!-- index.html 23.12.2025 -->
+// alt.gs 12.01.2026
 
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Tafel Sterkrade Admin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+//---------------------------------------------------------------------------------------------
+function yyydoPost(e) {
+//---------------------------------------------------------------------------------------------
+  const lock = LockService.getScriptLock();
+  lock.tryLock(30000); // 30 Sekunden warten
 
-  <!-- CSS wird wie bisher eingebunden -->
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/header.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/accordion.css">
-  <link rel="stylesheet" href="css/status.css">
-  <link rel="stylesheet" href="css/table-anmeldung.css">
-  <link rel="stylesheet" href="css/table-mitarbeiter.css">
-  <link rel="stylesheet" href="css/export.css">
-  <link rel="stylesheet" href="css/termine.css">
-  <link rel="stylesheet" href="css/popup-overlay.css">
-  <link rel="stylesheet" href="css/loader.css">
-  <link rel="stylesheet" href="css/rapporte.css">
-  <link rel="stylesheet" href="css/news.css">
-  <link rel="stylesheet" href="css/xx_unused.css">
+  debugLogs = []; // Reset bei jedem Aufruf
+
+  if (lock.hasLock()) {
+    try {
+      const { action, payload } = JSON.parse(e.postData.contents);
+      let result;
+
+      switch (action) {
+        case 'getTestversion':
+          result = runWithDebug(action, () => getTestversion(), payload);
+          break;
+        case 'getWartungsStatus':
+          result = runWithDebug(action, () => getWartungsStatus(), payload);
+          break;
+        case 'getAktualisierungsStatus':
+          result = runWithDebug(action, () => getAktualisierungsStatus(), payload);
+          break;
+        case 'getVerfuegbareTermine':
+          result = runWithDebug(action, () => getVerfuegbareTermine(), payload);
+          break;
+        case 'getAnmeldeDaten':
+          result = runWithDebug(action, () => getAnmeldeDaten(), payload);
+          break;
+
+        case 'getAlleNamentlichenMeldungen':
+          result = runWithDebug(action, () => getAlleNamentlichenMeldungen(), payload);
+          break;
+
+        case 'getMitarbeiterDaten':
+          result = runWithDebug(action, () => getMitarbeiterDaten(), payload);
+          break;
+        case 'getFunktionen':
+          result = runWithDebug(action, () => getFunktionen(), payload);
+          break;
+        case 'getAlleAnmeldeInfos':
+          result = runWithDebug(action, () => getAlleAnmeldeInfos(), payload);
+          break;
+
+        case 'updateSheetRapportMeldungen':
+          result = runWithDebug(action, (p) => updateSheetRapportMeldungen(p.termin, p.anmeldungen, p.abmeldungen), payload);
+          break;
+
+        case 'speichereFunktionsAenderungen':
+          result = runWithDebug(action, (p) => speichereFunktionsAenderungen(p.aenderungen, p.termin), payload);
+          break;
+
+        case 'toggleWartung':
+          result = runWithDebug(action, () => toggleWartung(), payload);
+          break;
+        case 'aktualisiereTermineGS':
+          result = runWithDebug(action, () => aktualisiereTermineGS(), payload);
+          break;
+        case 'aktualisiereMitarbeiterGS':
+          result = runWithDebug(action, (p) => aktualisiereMitarbeiterGS(p.anmeldedaten, p.mitarbeiterdaten), payload);
+          break;
+
+        case 'legeNeuenMitarbeiterAn':
+          result = runWithDebug(action, (p) => legeNeuenMitarbeiterAn(p.neueMitarbeiterDaten), payload);
+          break;
+        case 'speichereMitarbeiterDaten':
+          result = runWithDebug(action, (p) => speichereMitarbeiterDaten(p.aenderungen), payload);
+          break;
+        case 'checkMitarbeiterInAnmeldung':
+          result = runWithDebug(action, (p) => checkMitarbeiterInAnmeldung(p.anmeldedaten, p.mitarbeiterdaten), payload);
+          break;
+
+        case 'exportSheetToXlsxAndSendMail':
+          result = runWithDebug(action, (p) => exportSheetToXlsxAndSendMail(p.sheetName, p.filename, p.usermail), payload);
+          break;
+
+        case 'exportSheetToXlsxAndSendMail':
+          result = runWithDebug(action, (p) => exportSheetToXlsxAndSendMail(p.sheetName, p.filename, p.usermail), payload);
+          break;
+        case 'getMitarbeiterSpaltennamen':
+          result = runWithDebug(action, () => getMitarbeiterSpaltennamen(), payload);
+          break;
+
+        case 'exportMitarbeiterRangesToPdfAndDownload':
+          result = runWithDebug(action, (p) => exportMitarbeiterRangesToPdfAndDownload(p.ranges), payload);
+          break;
+        
+        case 'exportMitarbeiterRangesToXlsxAndSendMail':
+          result = runWithDebug(action, (p) => exportMitarbeiterRangesToXlsxAndSendMail(p.ranges, p.usermail), payload);
+          break;
+
+        case 'sendPdfByEmail':
+          result = runWithDebug(action, (p) => sendPdfByEmail(p.sheetName), payload);
+          break;
+        case 'exportSheetToPdfAndGetLink':
+          result = runWithDebug(action, (p) => exportSheetToPdfAndGetLink(p.sheetName), payload);
+          break;
+
+        default:
+          throw new Error(`Unbekannte Aktion: ${action}`);
+      }
+
+      // Sicherstellen, dass nie undefined/null zurückkommt
+      if (result === undefined || result === null) {
+        result = { error: `Aktion "${action}" hat kein Ergebnis zurückgegeben.` };
+      }
+
+      const response = DEBUG ? { data: result, debug: debugLogs } : result;
+
+      return ContentService
+        .createTextOutput(JSON.stringify(response))
+        .setMimeType(ContentService.MimeType.JSON);
+
+    } catch (error) {
+      debugLog(`❌ Ausnahme: ${error.message}`);
+      return ContentService
+        .createTextOutput(JSON.stringify({ error: error.message, debug: debugLogs }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } finally {
+      lock.releaseLock();
+    }
+  } else {
+    return ContentService
+      .createTextOutput(JSON.stringify({ error: "Server ist beschäftigt. Bitte versuche es erneut." }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+
+//---------------------------------------------------------------------------------------------
+function xxxdoPost(e) {
+//---------------------------------------------------------------------------------------------
+  const lock = LockService.getScriptLock();
+  lock.tryLock(30000); // 30 Sekunden warten
+
+  if (lock.hasLock()) {
+    try {
+      const { action, payload } = JSON.parse(e.postData.contents);
+      let result;
+      
+      switch (action) {
+//---Start.js, Anmeldung.js, Manage.js , Mitarbeiter.js   
+        case 'getTestversion':
+          result = getTestversion();
+          break;
+        case 'getWartungsStatus':
+          result = getWartungsStatus();
+          break;
+        case 'getAktualisierungsStatus':
+          result = getAktualisierungsStatus();
+          break;
+        case 'getVerfuegbareTermine':
+          result = getVerfuegbareTermine();
+          break;
+        case 'getAnmeldeDaten':
+          result = getAnmeldeDaten();
+          break;
+        case 'getMitarbeiterDaten':
+          result = getMitarbeiterDaten();
+          break;
+        case 'getFunktionen':
+          result = getFunktionen();
+          break;
+        case 'getAlleAnmeldeInfos':
+          result = getAlleAnmeldeInfos();
+          break;
+
+//---Anmeldung.js   
+        case 'speichereFunktionsAenderungen':
+          result = speichereFunktionsAenderungen(payload.aenderungen, payload.termin);
+          break;
+
+//---Manage.js   
+        case 'toggleWartung':
+          result = toggleWartung();
+          break;
+        case 'aktualisiereTermineGS':
+          result = aktualisiereTermineGS();
+          break;
+        case 'aktualisiereMitarbeiterGS':
+          result = aktualisiereMitarbeiterGS(payload.anmeldedaten, payload.mitarbeiterdaten);
+          break;
+
+//---Mitarbeiter.js   
+        case 'legeNeuenMitarbeiterAn':
+          result = legeNeuenMitarbeiterAn(payload.neueMitarbeiterDaten);
+          break;
+        case 'speichereMitarbeiterDaten':
+          result = speichereMitarbeiterDaten(payload.aenderungen);
+          break;
+        case 'checkMitarbeiterInAnmeldung':
+          result = checkMitarbeiterInAnmeldung(payload.anmeldedaten, payload.mitarbeiterdaten);
+          break;
+
+//---Rapport.js   
+        case 'createTagesrapport':
+          result = createTagesrapport(payload.termin);
+          break;
+
+        case 'exportSheetToXlsxAndSendMail':
+          result = exportSheetToXlsxAndSendMail(payload.sheetName, payload.filename, payload.usermail);
+          break;
+
+        case 'getMitarbeiterSpaltennamen':
+          result = getMitarbeiterSpaltennamen(); 
+          break;
+
+        case 'exportMitarbeiterToPdfAndDownload':
+          result = exportMitarbeiterToPdfAndDownload();
+          break;
+
+//---Tools.js   
+        case 'sendPdfByEmail':
+          result = sendPdfByEmail(payload.sheetName);
+          break;
+        case 'exportSheetToPdfAndGetLink':
+          result = exportSheetToPdfAndGetLink(payload.sheetName);
+          break;
+
+        default:
+          throw new Error(`Unbekannte Aktion: ${action}`);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+
+    } catch (error) {
+      Logger.log(error);
+      return ContentService.createTextOutput(JSON.stringify({ error: error.message })).setMimeType(ContentService.MimeType.JSON);
+    } finally {
+      lock.releaseLock();
+    }
+  } else {
+    // Falls Lock nicht verfügbar ist
+    return ContentService.createTextOutput(JSON.stringify({ error: "Server ist beschäftigt. Bitte versuche es erneut." })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+//-------------------------------------
+function xxxcreateTagesrapport(termin) {
+//-------------------------------------
+  //termin ="15.05.2025"     //....testen
+  const index = findTerminIndex (termin);
+  const rapportDaten = getNamentlicheAnmeldung(index);
+
+  // Schreibe den ausgewählten Termin
+  RapportTermin.setValue(termin);
+
+  // Schreibe das aktuelle Datum
+  const jetzt = new Date();
+  const datumString = Utilities.formatDate(jetzt, SPREADSHEET.getSpreadsheetTimeZone(), "dd.MM.yyyy");
+  RapportDatum.setValue(datumString);
+
+  // Leere die vorherigen Einträge in den Bereichen für Namen und Funktionen (optional)
+  RapportHelferRange.clearContent();
+  RapportFunktionenRange.clearContent();
+
+  // Fülle die Namen und Funktionen ein
+  const namenListe = rapportDaten.map(item => [item.name[0]]); // Zugriff auf den Namen im Array
+  const funktionenListe = rapportDaten.map(item => [item.funktion]);
+
+  // Schreibe die Namen
+  if (namenListe.length > 0) {
+    sheetRapport.getRange(RapportHelferRange.getRow(), RapportHelferRange.getColumn(), namenListe.length, 1).setValues(namenListe);
+  }
+
+  // Schreibe die Funktionen
+  if (funktionenListe.length > 0) {
+    sheetRapport.getRange(RapportFunktionenRange.getRow(), RapportFunktionenRange.getColumn(), funktionenListe.length, 1).setValues(funktionenListe);
+  }
+
+  // --- Abschnitt für die bevorstehenden Geburtstage (nun mit der ausgelagerten Funktion) ---
+  const bevorstehendeGeburtstage = getGeburtstage();
+
+  const geburtsnamenArray = bevorstehendeGeburtstage.map(item => item.name + ":");
+  const geburtsdatenArray = bevorstehendeGeburtstage.map(item => `${item.tag}.${item.monat}.`);
+
+  const startZeile = 32;
+  const anzahlGeburtstage = bevorstehendeGeburtstage.length;
+
+  if (anzahlGeburtstage > 0) {
+    RapportGebNameRange.offset(0, 0, anzahlGeburtstage, 1).setValues(geburtsnamenArray.map(n => [n]));
+    RapportGebDatumRange.offset(0, 0, anzahlGeburtstage, 1).setValues(geburtsdatenArray.map(d => [d]));
+
+    // Leere eventuell vorhandene Einträge darunter
+    if (sheetRapport.getLastRow() > startZeile + anzahlGeburtstage - 1) {
+      const clearNamenRange = sheetRapport.getRange(startZeile + anzahlGeburtstage, 3, sheetRapport.getLastRow() - (startZeile + anzahlGeburtstage) + 1, 1);
+      const clearDatenRange = sheetRapport.getRange(startZeile + anzahlGeburtstage, 5, sheetRapport.getLastRow() - (startZeile + anzahlGeburtstage) + 1, 1);
+      clearNamenRange.clearContent();
+      clearDatenRange.clearContent();
+    }
+  } else {
+    // Leere die Geburtstagsbereiche, falls keine anstehen
+    RapportGebNameRange.clearContent();
+    RapportGebDatumRange.clearContent();
+  }
+
+  return "Tagesrapport für Termin '" + termin + "' wurde erstellt (Datum: " + datumString + ").";
+}
+
+//-------------------------------------------
+function xxxaktualisiereTermineGS() {
+//-------------------------------------------
+  let endStatus = "";
+  xxxaktualisiereTermineInAnmeldung();
+  xxxaktualisiereInfoInAnmeldung("Anmeldung");
+  xxxaktualisiereInfoInAnmeldung("Archiv");
+  endStatus = 'Aktualisierung abgeschlossen!';
+  protokolliereAusfuehrung("aktualisiereTermine", endStatus);
+
+  const status = " "
+  const aktion = "Aktualisierung"
+  aktualisiereAktualisierungsStatus("Termine", status, aktion);
+  xxxcheckTermineInAnmeldung();
+
+}
+
+//-------------------------------------------
+function xxxcheckTermineInAnmeldung() {
+//-------------------------------------------
+  const headerRow = 1;
+  const startSpalte = 3; // C
+ // const maxTermine = 6;  // globale Konstante 
+
+  const heute = new Date();
+  heute.setHours(0, 0, 0, 0); // Zeitanteil entfernen
+
+  const aktuelleTermine = sheetAnmeldung.getRange(headerRow, startSpalte, 1, maxTermine).getValues().flat();
+
+  let anzahlVeralteter = 0;
+  let statusText = "Status OK";
+  let DetailText = ` `;
+
+  for (let i = 0; i < aktuelleTermine.length; i++) {
+    const datum = aktuelleTermine[i];
+
+    if (datum instanceof Date) {
+      const terminDatum = new Date(datum);
+      terminDatum.setHours(0, 0, 0, 0);
+
+      if (terminDatum < heute) {
+        anzahlVeralteter++;
+        const dateFormatted = Utilities.formatDate(terminDatum, SPREADSHEET.getSpreadsheetTimeZone(), "dd.MM.yyyy");
+        Logger.log(`${i}: Veralteter Termin: ${dateFormatted}`);
+      }
+    }
+  }
+
+  // Statusmeldung vorbereiten
+  if (anzahlVeralteter > 0) {
+      statusText = "Aktualisierung empfohlen"
+      DetailText = `${anzahlVeralteter} veraltete Termine`;
+  }
+
+  // Status schreiben
+  aktualisiereAktualisierungsStatus("Termine", statusText, DetailText);
+}
+
+//-------------------------------------------
+function xxxaktualisiereTermineInAnmeldung() {
+//-------------------------------------------
+  const headerRow = 1;
+  const terminSpaltenStart = 3; // C = Spalte 3
+  const maxTerminSpalten = 6;   // C bis H
+
+  let heute = new Date();
+  heute.setHours(0, 0, 0, 0); // Zeitanteil entfernen
+
+  // Prüfe jede Terminspalte der Reihe nach
+  for (let i = 0; i < maxTerminSpalten; i++) {
+    const spaltenIndex = terminSpaltenStart + i;
+    const zellenwert = sheetAnmeldung.getRange(headerRow, spaltenIndex).getValue();
+
+    // Nur prüfen, wenn Zellenwert ein gültiges Datum ist
+    if (zellenwert instanceof Date) {
+      const terminDatum = new Date(zellenwert);
+      terminDatum.setHours(0, 0, 0, 0);
+
+      if (terminDatum < heute) {
+        Logger.log(`Veralteter Termin gefunden in Spalte ${spaltenIndex}: ${zellenwert}`);
+
+        // 1. Ins Archiv kopieren
+        xxxlöscheInfoblock(sheetAnmeldung)
+        xxxlöscheInfoblock(sheetArchiv)
+        xxxcopyAnmeldung2Archiv(spaltenIndex);
+
+        // 2. Spalten nach links schieben
+        xxxpushSpalteninAnmeldung(spaltenIndex);
+
+        // 3. Neue Terminspalte einfügen
+        xxxneueTerminSpalteinAnmeldung();
+
+        // 4. Status im Sheet Termine aktualisieren
+        xxxaktualisiereSheetTermin(zellenwert);
+
+        // Schleife wieder von vorne starten (neue Spaltenstruktur)
+        i = -1;
+      }
+    }
+  }
+}
+
+//----------------------------------------
+function xxxcopyAnmeldung2Archiv(spaltenIndex) {
+//----------------------------------------
+  const headerRow = 1;
+  const startRow = 2;
+  spaltenIndex = 3;
+
+  // Daten aus Anmeldung
+  const letzteZeileAnmeldung = sheetAnmeldung.getLastRow();
+  const anmeldungsDaten = sheetAnmeldung.getRange(startRow, 1, letzteZeileAnmeldung - 1, spaltenIndex).getValues(); // ID bis gewählter Terminspalte
+  const ueberschrift = sheetAnmeldung.getRange(headerRow, spaltenIndex).getValue();
+  Logger.log("letzteZeileAnmeldung" + letzteZeileAnmeldung );
+
+  // Daten aus Archiv
+  const letzteZeileArchiv = sheetArchiv.getLastRow();
+  const letzteSpalteArchiv = sheetArchiv.getLastColumn();
+  const archivIDs = sheetArchiv.getRange(startRow, 1, letzteZeileArchiv - 1, 2).getValues(); // Spalten 1–2: ID + Name
+
+  // Neue Archiv-Spalte vorbereiten
+  const neueSpalteIndex = letzteSpalteArchiv + 1;
+  sheetArchiv.getRange(headerRow, neueSpalteIndex).setValue(ueberschrift);
+
+  // Map für schnellen Zugriff auf Archiv-Zeilen per ID
+  const archivMap = new Map(); // key = ID (number), value = Zeilennummer im Archiv
+  archivIDs.forEach((row, i) => {
+    const id = row[0];
+    if (id !== "") archivMap.set(id, i + startRow);
+  });
+
+  // IDs aus Anmeldung verarbeiten
+  anmeldungsDaten.forEach(([id, name, ...werte], i) => {
+    const terminWert = werte[werte.length - 1]; // letzte Spalte (gewählter Termin)
+    if (archivMap.has(id)) {
+      // ID existiert im Archiv -> Terminwert in neuer Spalte setzen
+      const zielZeile = archivMap.get(id);
+      sheetArchiv.getRange(zielZeile, neueSpalteIndex).setValue(terminWert);
+    } else {
+      // ID fehlt im Archiv -> Neue Zeile anhängen
+      const neueZeile = [id, name];
+      for (let j = 3; j <= letzteSpalteArchiv; j++) {
+        neueZeile.push(""); // Leere Werte für bestehende Terminspalten
+      }
+      neueZeile.push(terminWert); // Wert in neue Spalte
+      sheetArchiv.appendRow(neueZeile);
+    }
+  });
+
+  // Nach ID sortieren (Spalte 1)
+  const neueLetzteZeile = sheetArchiv.getLastRow();
+  sheetArchiv.getRange(startRow, 1, neueLetzteZeile - 1, sheetArchiv.getLastColumn())
+    .sort({ column: 1, ascending: true });
+
+  Logger.log(`Spalte ${spaltenIndex} (${ueberschrift}) nach Archiv übertragen und Archiv nach ID sortiert.`);
+}
+
+//-------------------------------------------
+function xxxlöscheInfoblock (sheet) {
+//-------------------------------------------
+//  sheet = sheetAnmeldung
+  const startzeile = 2;
+  const ids = sheet.getRange("A1:A").getValues();
+  
+  let letzteMitarbeiterzeile = ids.findIndex(r => !r[0]);
+  if (letzteMitarbeiterzeile === -1) {
+    letzteMitarbeiterzeile = ids.length;
+  }
+
+  // 🔄 Infoblock löschen
+  const maxZeilen = sheet.getMaxRows();
+  const mumdeleterows = maxZeilen-letzteMitarbeiterzeile;
+  Logger.log("xxxlöscheInfoblock letzteMitarbeiterzeile" + letzteMitarbeiterzeile);
+  Logger.log("xxxlöscheInfoblock mumdeleterows"  + mumdeleterows);
+  if (mumdeleterows > 0 ) {
+    sheet.deleteRows(letzteMitarbeiterzeile + 1, mumdeleterows);
+  }
+}
+
+//-------------------------------------------
+function xxxpushSpalteninAnmeldung(spaltenIndex) {
+//-------------------------------------------
+  spaltenIndex = 3  //testen ....
+  const headerRow = 1;
+  const startRow = 2;
+
+  const letzteZeile = sheetAnmeldung.getLastRow();
+  const maxSpalten = 8; // A–H (inkl. ID, Name, 6 Termine)
+  const letzteTerminSpalte = 8;
+
+  // Wir verschieben alle Spalten ab spaltenIndex + 1 bis einschließlich letzteTerminSpalte
+  for (let von = spaltenIndex + 1; von <= letzteTerminSpalte; von++) {
+    const nach = von - 1;
+
+    // Überschrift verschieben
+    const titel = sheetAnmeldung.getRange(headerRow, von).getValue();
+    sheetAnmeldung.getRange(headerRow, nach).setValue(titel);
+
+    // Daten verschieben
+    const daten = sheetAnmeldung.getRange(startRow, von, letzteZeile - 1, 1).getValues();
+    sheetAnmeldung.getRange(startRow, nach, daten.length, 1).setValues(daten);
+  }
+
+  // Letzte Terminspalte (H / Spalte 8) leeren
+  sheetAnmeldung.getRange(headerRow, letzteTerminSpalte).clearContent();
+  sheetAnmeldung.getRange(startRow, letzteTerminSpalte, letzteZeile - 1, 1).clearContent();
+
+  Logger.log(`Spalten ab ${spaltenIndex} um eins nach links verschoben.`);
+}
+
+//-------------------------------------------
+function xxxneueTerminSpalteinAnmeldung() {
+//-------------------------------------------
+  const heute = new Date();
+  heute.setHours(0, 0, 0, 0);
+
+  const daten = sheetTermine.getDataRange().getValues(); // inkl. Header
+  for (let i = 1; i < daten.length; i++) {
+    const zeile = daten[i];
+    const terminDatum = zeile[1]; // Spalte B: "Termine"
+    const status = zeile[2];      // Spalte C: "Blatt"
+
+    if (status === "" && terminDatum instanceof Date) {
+      const datum = new Date(terminDatum);
+      datum.setHours(0, 0, 0, 0);
+
+      if (datum >= heute) {
+        // Termin gefunden → in Anmeldung eintragen (immer in H1)
+        sheetAnmeldung.getRange(1, 8).setValue(datum);
+
+        // In sheetTermine auf "Anmeldung" setzen
+        sheetTermine.getRange(i + 1, 3).setValue("Anmeldung"); // Zeile +1 wg. Header
+
+        Logger.log(`Neuer Termin ${datum.toLocaleDateString()} in Spalte H eingetragen.`);
+        return;
+      }
+    }
+  }
+
+  Logger.log("Kein neuer zukünftiger Termin gefunden.");
+}
+
+//-------------------------------------------
+function xxxaktualisiereSheetTermin(terminDatum) {
+//-------------------------------------------
+  const daten = sheetTermine.getDataRange().getValues(); // inkl. Header
+
+  // Uhrzeit ignorieren
+  terminDatum.setHours(0, 0, 0, 0);
+
+  for (let i = 1; i < daten.length; i++) {
+    const zeile = daten[i];
+    const spaltenDatum = zeile[1]; // Spalte B: Termine
+
+    if (spaltenDatum instanceof Date) {
+      const d = new Date(spaltenDatum);
+      d.setHours(0, 0, 0, 0);
+
+      if (d.getTime() === terminDatum.getTime()) {
+        // Setze in Spalte C "Archiv"
+        sheetTermine.getRange(i + 1, 3).setValue("Archiv"); // +1 wegen Header
+        Logger.log(`Termin ${d.toLocaleDateString()} als 'Archiv' markiert.`);
+        return;
+      }
+    }
+  }
+
+  Logger.log(`Termin ${terminDatum.toLocaleDateString()} NICHT in sheetTermine gefunden.`);
+}
 
 
 
-<!-- Scripte -->
-<script src="Apps_Script_URL.js"></script>
-<script src="js/Load.js"></script>
-<script src="js/Start.js"></script>
-<!-- Die restlichen Scripte werden in "Load.js" geladen, nachdem DOM und Sections stehen
-    "js/Manage.js",
-    "js/Anmeldung.js",
-    "js/Mitarbeiter.js",
-    "js/termine.js",
-    "js/ExportRapport.js",
-    "js/ExportMitarbeiter.js",
-    "js/EventListener.js",
-    "js/Tools.js",
-    "js/News.js",
-    "js/Rapporte.js"
--->
+//-------------------------------------------
+function xxxaktualisiereInfoInAnmeldung(sheetName) {
+//-------------------------------------------
+//  sheetName = "Archiv"  //testen
+  const sheet = SPREADSHEET.getSheetByName(sheetName);
+
+  const funktionenRoh = sheetFunktionen.getRange(2, 2, maxFunktionen, 1).getValues(); // Spalte B
+  const status = sheetFunktionen.getRange(2, 1, maxFunktionen, 1).getValues();    // Spalte A
+
+  let funktionen = funktionenRoh
+    .map((f, i) => ({ wert: f[0], check: status[i][0] }))
+    .filter(e => !e.check && e.wert) // Nur wenn Spalte A leer UND Funktion vorhanden
+    .map(e => e.wert.toString().trim());
+
+  const mitarbeiterSpalte = sheet.getRange("B2:B").getValues();
+  let letzteMitarbeiterzeile = mitarbeiterSpalte.findIndex(r => r[0] === "" || r[0] === undefined);
+  if (letzteMitarbeiterzeile === -1) {
+    letzteMitarbeiterzeile = mitarbeiterSpalte.length;
+  }
+
+  const datenStartzeile = 2;
+  const datenEndzeile = letzteMitarbeiterzeile + 1;
+  const spaltenzahl = sheet.getLastColumn();
+
+  // Löschen ab "datenEndzeile + 1" (1 Zeile Puffer)
+  const startzeile = datenEndzeile + 1; // +1: eine freie Zeile nach den Mitarbeitern
+  const zeilenZumLöschen = sheet.getMaxRows() - startzeile + 1;
+  if (zeilenZumLöschen > 0) {
+    sheet.getRange(startzeile, 1, zeilenZumLöschen, spaltenzahl).clearContent();
+  }
+
+  // Jetzt neuen Block schreiben
+  const startzeileAnmeldungen = datenEndzeile + 5; // 5 Zeilen Abstand 
+  sheet.getRange(startzeileAnmeldungen, 2).setValue(TitelAnmeldungen);
+//Logger.log("datenEndzeile" + datenEndzeile);
+//Logger.log("startzeile" + startzeile);
+//Logger.log("zeilenZumLöschen" + zeilenZumLöschen);
+//Logger.log("startzeileAnmeldungen" + startzeileAnmeldungen);
+  // ↘️ neue Hilfsfunktion zur Spaltenbuchstaben-Umwandlung
+  function spaltenNummerZuBuchstabe(num) {
+    let buchstabe = "";
+    while (num > 0) {
+      let rest = (num - 1) % 26;
+      buchstabe = String.fromCharCode(65 + rest) + buchstabe;
+      num = Math.floor((num - 1) / 26);
+    }
+    return buchstabe;
+  }
+
+  funktionen.forEach((funktion, index) => {
+    const zeile = startzeileAnmeldungen + 1 + index;
+    sheet.getRange(zeile, 2).setValue(funktion);
+
+    for (let spalte = 3; spalte <= spaltenzahl; spalte++) {
+      const buchstabe = spaltenNummerZuBuchstabe(spalte);
+      const zellbereich = `${buchstabe}${datenStartzeile}:${buchstabe}${datenEndzeile}`;
+      const formel = `=COUNTIF(${zellbereich}; B${zeile})`;
+      sheet.getRange(zeile, spalte).setFormula(formel);
+    }
+  });
+}
 
 
-</head>
 
-<body>
-<div class="app-container">
+//---------------------------------------------------------------------------------------------
+function xxxcreateMitarbeiterRapport(params) {
+//---------------------------------------------------------------------------------------------
+  /**
+   * Erstellt ein temporäres Tabellenblatt mit den ausgewählten Spalten aus dem "Mitarbeiter"-Blatt.
+   * @param {Object} params Ein Objekt, das die Parameter für die Funktion enthält.
+   * @param {Array<string>} params.spalten Ein Array von Spaltennamen, die exportiert werden sollen.
+   * @returns {string} Eine Erfolgsmeldung oder die URL des neuen Blatts.
+   */
 
-  <!-- Header -->
-  <div id="header">
-    <div class="titleArea">
-      <h1>Tafel Sterkrade Admin</h1>
-      <div class="version" id="version-admin">Version 5.12.23-1</div>
-      <div class="admin-title" id="TafelVersion">Tafel</div>
-      <div class="admin-title" id="adminIdent">angemeldet als:</div>
+  try {
+    const sourceSheet = SPREADSHEET.getSheetByName('Mitarbeiter'); // Der korrekte Weg, das Blatt zu referenzieren
+    const spaltenNamen = params.spalten;
 
-      <img src="TafelLogo.png" alt="Logo">
-    </div>
-  </div>
-
-  <!-- Ladebereich -->
-  <div id="loading-overlay" class="loading-state hidden">
-    <div class="loading-header">
-      <p id="loading-text">Daten werden geladen...</p> 
-      <button id="close-overlay-btn" onclick="closeOverlayLoading()">×</button>
-    </div>
+    if (!sourceSheet) {
+      throw new Error('Quellblatt "Mitarbeiter" wurde nicht gefunden.');
+    }
     
-    <div class="loading-step">
-     <span>Wartungsstatus wird geladen …</span>
-     <span id="spinner-wartung" class="spinner small"></span>
-   </div>
+    // Test, ob Spaltennamen übergeben wurden
+    if (!spaltenNamen || !Array.isArray(spaltenNamen) || spaltenNamen.length === 0) {
+      throw new Error('Keine Spalten für den Export ausgewählt.');
+    }
 
-   <div class="loading-step">
-      <span>Aktualisierungsstatus wird geladen …</span>
-     <span id="spinner-aktualisierung" class="spinner small"></span>
-   </div>
+    // Löscht ein altes temporäres Blatt, falls es noch existiert
+    const tempSheet = SPREADSHEET.getSheetByName('MitarbeiterExportblatt');
+    if (tempSheet) {
+      SPREADSHEET.deleteSheet(tempSheet);
+    }
 
-    <div class="loading-step">
-      <span>Termine werden geladen …</span>
-      <span id="spinner-termine" class="spinner small"></span>
-    </div>
+    // Erstellt ein neues, temporäres Blatt
+    const newSheet = SPREADSHEET.insertSheet('MitarbeiterExportblatt');
 
-    <div class="loading-step">
-     <span>Anmeldungstabelle wird geladen …</span>
-     <span id="spinner-anmeldung" class="spinner small"></span>
-    </div>
+    // Liest die Header-Zeile des Quellblatts
+    const headers = sourceSheet.getRange(1, 1, 1, sourceSheet.getLastColumn()).getValues()[0];
+    const headerMap = {};
+    headers.forEach((name, index) => {
+      headerMap[name] = index + 1;
+    });
 
-   <div class="loading-step">
-     <span>Mitarbeiter werden geladen …</span>
-      <span id="spinner-mitarbeiter" class="spinner small"></span>
-    </div>
+    // Bestimmt die Indizes der auszuwählenden Spalten
+    const spaltenIndizes = spaltenNamen.map(name => {
+      const index = headerMap[name];
+      if (!index) {
+        throw new Error(`Spalte "${name}" wurde nicht im Quellblatt gefunden.`);
+      }
+      return index;
+    });
 
-    <div class="loading-step">
-      <span>Funktionen werden geladen …</span>
-      <span id="spinner-funktionen" class="spinner small"></span>
-    </div>
+    // Liest alle Daten aus den ausgewählten Spalten
+    const allData = sourceSheet.getDataRange().getValues();
+    const newData = allData.map(row => {
+      const newRow = [];
+      spaltenIndizes.forEach(colIndex => {
+        newRow.push(row[colIndex - 1]);
+      });
+      return newRow;
+    });
 
-    <div class="loading-step">
-     <span>AnmeldeInfos werden geladen …</span>
-     <span id="spinner-anmeldeInfos" class="spinner small"></span>
-    </div>
+    // Schreibt die neuen Daten in das temporäre Blatt
+    newSheet.getRange(1, 1, newData.length, newData[0].length).setValues(newData);
 
-  </div>
+    return `Temporäres Blatt "MitarbeiterExportblatt" wurde erstellt und mit Daten gefüllt.`;
 
-  <!-- Admin-Login Overlay -->
-  <div id="overlayAdminLogin" class="overlay">
-    <div class="login-box">
-      <h2>Admin-Login</h2>
-      <input type="text" id="adminNameInput" placeholder="Admin Anmeldename" />
-      <button id="adminLoginButton"  onclick="checkAdminLogin()">Login</button>
-      <p id="loginMessage"></p>
-    </div>
-  </div>
+  } catch (e) {
+    throw new Error('Fehler beim Erstellen des Mitarbeiter-Rapports: ' + e.message);
+  }
+}
 
-  <!-- Wartung -->
-  <section id="wartung-bereich">
-      <label>
-        <input type="checkbox" id="wartungsModusCheckbox" onclick="toggleWartungCheckbox(this.checked)">
-        Wartungsmodus: <span id="wartungs-status-anzeige">
-      </label>
-  </section>
+//---------------------------------------------------------------------------------------------
+function xxxxcreateTempMitarbeiterSheet(params) {
+//---------------------------------------------------------------------------------------------
+/**
+ * Erstellt ein temporäres Tabellenblatt mit den ausgewählten Spalten aus dem "Mitarbeiter"-Blatt.
+ * @param {Object} params Ein Objekt, das die Parameter für die Funktion enthält.
+ * @param {Array<string>} params.spalten Ein Array von Spaltennamen, die exportiert werden sollen.
+ * @returns {string} Eine Erfolgsmeldung oder die URL des neuen Blatts.
+ */
 
-  <!-- Popup -->
-  <div id="popup" style="display: none;">
-    <div id="popup-content">
-      <p></p>
-      <button onclick="closePopup()">Schließen</button>
-    </div>
-  </div>
+// zum testen:
+        params = getMitarbeiterSpaltennamen()
+        Logger.log("createTempMitarbeiterSheet:" + params);
 
-  <!-- Accordion -->
-  <div class="dashboard-container" id="main-accordion">
-    <div id="section-aktualisierung"></div>
-    <div id="section-mitarbeiter"></div>
-    <div id="section-anmeldung"></div>
-    <div id="section-termine"></div>
-    <div id="section-rapporte"></div> 
-    <div id="section-news"></div>
-  </div>
+  try {
+    const sourceSheet = sheetMitarbeiter; // Name des Quellblatts
+    const spaltenNamen = params.spalten;
 
-</div>
+    if (!sourceSheet) {
+      throw new Error('Quellblatt "Mitarbeiter" wurde nicht gefunden.');
+    }
+
+    // Löscht ein altes temporäres Blatt, falls es noch existiert
+    const tempSheet = SPREADSHEET.getSheetByName('MitarbeiterExportblatt');
+    if (tempSheet) {
+      SPREADSHEET.deleteSheet(tempSheet);
+    }
+
+    // Erstellt ein neues, temporäres Blatt
+    const newSheet = SPREADSHEET.insertSheet('MitarbeiterExportblatt');
+
+    if (newSheet) {
+  Logger.log("createTempMitarbeiterSheet: MitarbeiterExportblatt erstellt");
+    }
+
+    // Liest die Header-Zeile des Quellblatts
+    const headers = sourceSheet.getRange(1, 1, 1, sourceSheet.getLastColumn()).getValues()[0];
+    const headerMap = {};
+    headers.forEach((name, index) => {
+      headerMap[name] = index + 1; // Spaltenindex beginnt bei 1
+  Logger.log("createTempMitarbeiterSheet 1:" + name + index);
+    });
+  Logger.log("createTempMitarbeiterSheet ++++++++++++ 1:");
+
+    // Bestimmt die Indizes der auszuwählenden Spalten
+    const spaltenIndizes = spaltenNamen.map(name => {
+      const index = headerMap[name];
+      if (!index) {
+        throw new Error(`Spalte "${name}" wurde nicht im Quellblatt gefunden.`);
+      }
+      return index;
+    });
+
+  Logger.log("createTempMitarbeiterSheet ++++++++++++ 2:");
+    // Liest alle Daten aus den ausgewählten Spalten
+    const allData = sourceSheet.getDataRange().getValues();
+    const newData = allData.map(row => {
+      const newRow = [];
+      spaltenIndizes.forEach(colIndex => {
+        newRow.push(row[colIndex - 1]); // Arrays sind 0-indiziert
+      });
+      return newRow;
+    });
+
+  Logger.log("createTempMitarbeiterSheet ++++++++++++ 3:");
+    // Schreibt die neuen Daten in das temporäre Blatt
+    newSheet.getRange(1, 1, newData.length, newData[0].length).setValues(newData);
+
+  Logger.log("createTempMitarbeiterSheet ++++++++++++ 4:");
+    // Optional: Füge die Funktion zum Löschen des Blatts hinzu
+    // Dies kann manuell oder nach einer gewissen Zeit/Aktion erfolgen.
+    // Der Einfachheit halber können wir es hier nach dem Export automatisch tun.
+
+    return `Temporäres Blatt "MitarbeiterExportblatt" wurde erstellt und mit Daten gefüllt.`;
+  } catch (e) {
+    throw new Error('Fehler beim Erstellen des Mitarbeiter-Rapports: ' + e.message);
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+function xxxsubmitDebug(debugtext) {
+//---------------------------------------------------------------------------------------------
+  const timestamp = new Date();
+  sheetDebug.appendRow([timestamp, debugtext]);
+}
+
+//---------------------------------------------------------------------------------------------
+function xxxgetWebAppUrl() {
+//---------------------------------------------------------------------------------------------
+  return ScriptApp.getService().getUrl();
+}
+
+//---------------------------------------------------------------------------------------------
+function xxxcleanSheet(sheet) {
+//---------------------------------------------------------------------------------------------
+   if (!sheet) {
+    Logger.log("Tabellenblatt nicht gefunden.");
+    return;
+  }
+
+  // **Leere Zeilen nach der letzten besetzten Zeile löschen:**
+  const lastRow = sheet.getLastRow();
+   Logger.log(`lastRow` + lastRow);
+
+  if (lastRow > 0) {
+    let firstEmptyRow = -1;
+    for (let i = lastRow; i >= 1; i--) {
+      const rowValues = sheet.getRange(i, 1, 1, sheet.getLastColumn()).getValues()[0];
+      if (!rowValues.some(cell => cell !== "" && String(cell).trim() !== "")) {
+        firstEmptyRow = i;
+      } else {
+        break; // Sobald wir die letzte nicht-leere Zeile gefunden haben, können wir aufhören
+      }
+    }
+    if (firstEmptyRow > 0 && firstEmptyRow <= lastRow) {
+      sheet.deleteRows(firstEmptyRow, lastRow - firstEmptyRow + 1);
+      Logger.log(`Leere Zeilen ab Zeile ${firstEmptyRow} bis ${lastRow} wurden gelöscht.`);
+    }
+  }
+  
+  // **Leere Spalten nach der letzten besetzten Spalte löschen:**
+  const lastColumn = sheet.getLastColumn();
+  Logger.log(`lastColumn` + lastColumn);
+  if (lastColumn > 0) {
+    let firstEmptyColumn = -1;
+    for (let j = lastColumn; j >= 1; j--) {
+      const columnValues = sheet.getRange(1, j, sheet.getLastRow(), 1).getValues().map(row => row[0]);
+      if (!columnValues.some(cell => cell !== "" && String(cell).trim() !== "")) {
+        firstEmptyColumn = j;
+      } else {
+        break; // Sobald wir die letzte nicht-leere Spalte gefunden haben, können wir aufhören
+      }
+    }
+    if (firstEmptyColumn > 0 && firstEmptyColumn <= lastColumn) {
+      sheet.deleteColumns(firstEmptyColumn, lastColumn - firstEmptyColumn + 1);
+      Logger.log(`Leere Spalten ab Spalte ${firstEmptyColumn} bis ${lastColumn} wurden gelöscht.`);
+    }
+  }
+
+  Logger.log("Bereinigung des Tabellenblatts abgeschlossen.");
+}
+//-------------------------------------
+function xxxupdateSheetRapportMeldungen (termin, anmeldungen, abmeldungen) {
+//-------------------------------------
+    RapportTermin.setValue(termin);
+    
+    // Schreibe das aktuelle Datum
+    const jetzt = new Date();
+    const datumString = Utilities.formatDate(jetzt, SPREADSHEET.getSpreadsheetTimeZone(), "dd.MM.yyyy");
+    RapportDatum.setValue(datumString);
+
+    // Leere die vorherigen Einträge in den Bereichen für Namen und Funktionen (optional)
+    RapportHelferRange.clearContent();
+    RapportFunktionenRange.clearContent();
+
+    // Fülle die Namen und Funktionen ein
+    const namenListe = anmeldungen.map(item => [item.name]);
+    const funktionenListe = anmeldungen.map(item => [item.funktion]);
+
+    // Schreibe die Namen
+    if (namenListe.length > 0) {
+        sheetRapport.getRange(RapportHelferRange.getRow(), RapportHelferRange.getColumn(), namenListe.length, 1).setValues(namenListe);
+    }
+
+    // Schreibe die Funktionen
+    if (funktionenListe.length > 0) {
+        sheetRapport.getRange(RapportFunktionenRange.getRow(), RapportFunktionenRange.getColumn(), funktionenListe.length, 1).setValues(funktionenListe);
+    }
+
+    // Schreibe die Abmeldungslisten in separate Zeilen
+    const startRow = RapportAbmeldungen.getRow();
+    const startCol = RapportAbmeldungen.getColumn();
+    RapportAbmeldungenRange.clearContent();
+
+    if (abmeldungen.length > 0) {
+        // Schreibe das gesamte 2D-Array der Abmeldungslisten (eine Liste pro Zelle)
+        sheetRapport.getRange(startRow, startCol, abmeldungen.length, 1).setValues(abmeldungen);
+    }
+
+    return "Tagesrapport für Termin '" + termin + "' wurde erstellt (Datum: " + datumString + ").";
+}
+
+//-------------------------------------
+function xxxupdateSheetRapport(termin, anmeldungen, abmeldungen) {
+//-------------------------------------
+  debugLog("🚀 Start updateSheetRapport für: " + termin);
+  const statusMeldung = updateSheetRapportMeldungen(termin, anmeldungen, abmeldungen);
+
+  try {
+    const jahrMatch = termin.match(/\d{4}/);
+    const archivJahr = jahrMatch ? jahrMatch[0] : new Date().getFullYear().toString();
+    
+    const targetSS = getOrCreateYearlyArchive(archivJahr);
+    const targetUrl = targetSS.getUrl();
+    const newSheetName = "Rapport " + termin;
+    
+    const existingSheet = targetSS.getSheetByName(newSheetName);
+    let logStatus = "Neu erstellt";
+    if (existingSheet) {
+      targetSS.deleteSheet(existingSheet);
+      logStatus = "Aktualisiert";
+    }
+    
+    const copiedSheet = sheetRapport.copyTo(targetSS);
+    copiedSheet.setName(newSheetName);
+    const newSheetId = copiedSheet.getSheetId();
+
+    // Link und Protokoll
+    const linkFormel = '=HYPERLINK("' + targetUrl + '#gid=' + newSheetId + '"; "' + newSheetName + '")';
+    const protoSheet = targetSS.getSheetByName("Rapportprotokoll");
+    const zeitstempel = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd.MM.yyyy HH:mm:ss");
+    
+    // Protokoll-Eintrag (Suche/Update oder Neu)
+    if (logStatus === "Aktualisiert") {
+      const data = protoSheet.getDataRange().getValues();
+      let found = false;
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][1] && data[i][1].toString().indexOf(newSheetName) !== -1) {
+          protoSheet.getRange(i + 1, 1).setValue(zeitstempel);
+          protoSheet.getRange(i + 1, 2).setFormula(linkFormel);
+          protoSheet.getRange(i + 1, 3).setValue(logStatus);
+          found = true; break;
+        }
+      }
+      if (!found) {
+        protoSheet.appendRow([zeitstempel, "", logStatus]);
+        protoSheet.getRange(protoSheet.getLastRow(), 2).setFormula(linkFormel);
+      }
+    } else {
+      protoSheet.appendRow([zeitstempel, "", logStatus]);
+      protoSheet.getRange(protoSheet.getLastRow(), 2).setFormula(linkFormel);
+    }
+    statusMeldung =  newSheetName + " " + logStatus + " in Sheet " + targetSS.getName();
+    debugLog (statusMeldung);
+
+    return statusMeldung;
+
+  } catch (err) {
+    debugLog("❌ Fehler: " + err.message);
+    return "Fehler: " + err.message;
+  }
+}
 
 
-</body>
-</html>
+//---------------------------------------------------------------------------------------------
+function xxxgetOrCreateEditFile(payload) {
+//---------------------------------------------------------------------------------------------
+  const { fileId } = payload;
+//fileId = "https://docs.google.com/spreadsheets/d/17993ml61JICuAV0-EegHFW5Mli_fPTfi/edit?usp=drivesdk&ouid=103314894902797939392&rtpof=true&sd=true";
+  const originalFile = DriveApp.getFileById(fileId);
+  const parentFolder = originalFile.getParents().next();
+  const fileName = originalFile.getName();
+  
+  // Dateiname zerlegen für das "-edit" Suffix
+  const lastDotIndex = fileName.lastIndexOf('.');
+  const baseName = fileName.substring(0, lastDotIndex);
+  const extension = fileName.substring(lastDotIndex);
+  const editName = `${baseName}-edit${extension}`;
+  
+  // Prüfen, ob eine Edit-Datei mit diesem Namen im selben Ordner existiert
+  const existingFiles = parentFolder.getFilesByName(editName);
+  
+  if (existingFiles.hasNext()) {
+    const editFile = existingFiles.next();
+    debugLog(`Edit-Datei existiert bereits: ${editName}`);
+    return {
+      exists: true,
+      editFileId: editFile.getId(),
+      editUrl: editFile.getUrl(),
+      editName: editName
+    };
+  } else {
+    // Keine Edit-Datei da -> Kopie vom Original erstellen
+    debugLog(`Erstelle neue Edit-Kopie: ${editName}`);
+    const newCopy = originalFile.makeCopy(editName, parentFolder);
+    return {
+      exists: false,
+      editFileId: newCopy.getId(),
+      editUrl: newCopy.getUrl(),
+      editName: editName
+    };
+  }
+}
+
+//-------------------------------------------------------------
+function xxxgetTagesrapporteList() {
+//-------------------------------------------------------------
+  const folder = DriveApp.getFolderById(Tagesrapport_FOLDER_ID);
+  const files = folder.getFiles();
+  const fileList = [];
+  
+  while (files.hasNext()) {
+    const file = files.next();
+    let archived = file.getName().includes("-V");
+    fileList.push({
+        id: file.getId(),
+        name: file.getName(),
+        size: file.getSize(), // Größe in Bytes
+        date: file.getDateCreated().toLocaleDateString('de-DE'),
+        url: file.getDownloadUrl(), // Liefert einen temporären Download-Link
+        previewUrl: file.getUrl(), // Liefert die Drive-Vorschau-URL**
+        archiv: archived // Archiv-Datei: Name().includes("-V")
+      });
+  }
+
+  // Sortierung nach Datum oder Name (optional, aber empfohlen)
+  fileList.sort((a, b) => a.name.localeCompare(b.name));
+  
+  debugLog(`Gefundene Rapporte: ${fileList.length}`);
+      debugLog(`file: ${fileList[0].name}`);
+  return fileList;
+}
